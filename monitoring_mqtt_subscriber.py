@@ -4,16 +4,22 @@ import os
 
 # --- MQTT Broker Configuration ---
 # Since Mosquitto is on your laptop, this script should also run on your laptop.
+# BROKER_ADDRESS = "192.168.3.101" # Assuming this script runs on the same machine as Mosquitto
 BROKER_ADDRESS = "localhost" # Assuming this script runs on the same machine as Mosquitto
 BROKER_PORT = 1883           # Default MQTT port
-TOPIC = "iot/sensor/data"    # The MQTT topic to subscribe to
+TOPIC = "client_001/#"    # The MQTT topic to subscribe to
+# TOPIC = "client_id/#"    # The MQTT topic to subscribe to
 
 # --- Logging Configuration ---
 LOG_FILE = "iot_data_log.txt"
 
 # --- MQTT Client Callbacks ---
-def on_connect(client, userdata, flags, rc):
+def on_connect(client, userdata, flags, rc, a):
     """Callback function when the client connects to the MQTT broker."""
+    # print(userdata)
+    # print(flags)
+    # print(rc)
+    # print(a)
     if rc == 0:
         print(f"✅ Connected to MQTT Broker at {BROKER_ADDRESS}:{BROKER_PORT}!")
         client.subscribe(TOPIC) # Subscribe to the topic once connected
@@ -23,14 +29,22 @@ def on_connect(client, userdata, flags, rc):
 
 def on_message(client, userdata, msg):
     """Callback function when a message is received from the subscribed topic."""
+    # print(type(client), end='')
+    # print(client)
+    # print(type(userdata), end='')
+    # print(userdata)
+    # print(type(msg), end='')
+    # print(msg)
     try:
+        print(f"Received message on topic: {msg.topic}")
         payload = msg.payload.decode() # Decode the byte payload to a string
         # print(f"⬇️ Received: {payload} on topic {msg.topic}")
 
         # Try to parse as JSON (assuming the sender sends JSON)
         try:
-            iot_data = json.loads(payload)
-            log_entry = f"{iot_data.get('timestamp', 'N/A')} - Device {iot_data.get('device_id', 'N/A')}: Temp={iot_data.get('temperature', 'N/A')}°C, Hum={iot_data.get('humidity', 'N/A')}%"
+            # iot_data = json.loads(payload)
+            log_entry = f"RAW: {payload}" # Log raw if not JSON
+            # log_entry = f"{iot_data.get('timestamp', 'N/A')} - Device {iot_data.get('device_id', 'N/A')}: Temp={iot_data.get('temperature', 'N/A')}°C, Hum={iot_data.get('humidity', 'N/A')}%"
         except json.JSONDecodeError:
             log_entry = f"RAW: {payload}" # Log raw if not JSON
 
@@ -43,7 +57,9 @@ def on_message(client, userdata, msg):
         print(f"⚠️ Error processing message: {e}")
 
 # --- Setup MQTT Client ---
-client = mqtt.Client()
+client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2, "client_002")
+
+client.username_pw_set("rpi", "Dynamic2024")
 client.on_connect = on_connect
 client.on_message = on_message
 
